@@ -17,8 +17,19 @@ namespace Demo.Api.Controllers
         {
             _logger = logger;
         }
-
+        /// <summary>
+        /// Get Weather Details
+        /// </summary>
+        /// <remarks>
+        /// something weather related
+        /// </remarks>
+        /// <returns></returns>
+        /// <response code = "400"> Empty data</response>
+        /// <response code = "201">Will create  data</response>
         [HttpGet(Name = "GetWeatherForecast")]
+        [Produces("application/json")]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status201Created)]
         public IEnumerable<WeatherForecast> Get()
         {
             return Enumerable.Range(1, 5).Select(index => new WeatherForecast
