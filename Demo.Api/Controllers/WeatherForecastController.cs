@@ -1,3 +1,4 @@
+using Demo.Api.Service.Contract;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Demo.Api.Controllers
@@ -6,39 +7,52 @@ namespace Demo.Api.Controllers
     [Route("[controller]")]
     public class WeatherForecastController : ControllerBase
     {
-        private static readonly string[] Summaries = new[]
-        {
-        "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-    };
-
+        private readonly IWeatherForcastService _weatherForcastService;
         private readonly ILogger<WeatherForecastController> _logger;
 
-        public WeatherForecastController(ILogger<WeatherForecastController> logger)
+        public WeatherForecastController(IWeatherForcastService _weatherForcastService, ILogger<WeatherForecastController> logger)
         {
-            _logger = logger;
+            this._weatherForcastService = _weatherForcastService ?? throw new ArgumentNullException(nameof(_weatherForcastService));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
         /// <summary>
-        /// Get Weather Details
+        /// Get list Weather Details
         /// </summary>
         /// <remarks>
         /// something weather related
         /// </remarks>
         /// <returns></returns>
         /// <response code = "400"> Empty data</response>
-        /// <response code = "201">Will create  data</response>
-        [HttpGet(Name = "GetWeatherForecast")]
+        /// <response code = "200">Returns list of weather report</response>
+        [HttpGet()]
         [Produces("application/json")]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        public IEnumerable<WeatherForecast> Get()
+        [ProducesResponseType(typeof(IEnumerable<WeatherForecast>), StatusCodes.Status200OK)]
+        public async Task<IEnumerable<WeatherForecast>> GetAllWeatherDetails()
         {
-            return Enumerable.Range(1, 5).Select(index => new WeatherForecast
-            {
-                Date = DateTime.Now.AddDays(index),
-                TemperatureC = Random.Shared.Next(-20, 55),
-                Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-            })
-            .ToArray();
+            _logger.LogInformation("Calling method : {0}", nameof(this.GetAllWeatherDetails));
+            return await _weatherForcastService.GetWeatherForecastsAsync();
+        }
+
+        /// <summary>
+        /// Get Weather Details
+        /// </summary>
+        /// <remarks>
+        /// something weather related
+        /// </remarks>
+        /// <param name="Id">Id of City</param>
+        /// <returns></returns>
+        /// <response code = "400">Empty data</response>
+        /// <response code = "200">Returns of weather report</response>
+        [HttpGet()]
+        [Route("GetWeatherById/{Id}")]
+        [Produces("application/json")]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(WeatherForecast), StatusCodes.Status200OK)]
+        public async Task<WeatherForecast> GetWeatherById(int Id)
+        {
+            _logger.LogInformation("Calling method : {0}", nameof(this.GetWeatherById));
+            return await _weatherForcastService.GetForcastAsync(Id);
         }
     }
 }

@@ -1,4 +1,8 @@
-﻿using System.Reflection;
+﻿using Demo.Api.Constants;
+using Microsoft.OpenApi.Models;
+using Serilog;
+using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace Demo.Api.Extensions
@@ -32,8 +36,67 @@ namespace Demo.Api.Extensions
                 });
                 var xmlFilePath = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 opt.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilePath));
-            });
+                opt.AddSwaggerAuthentication();
+            }); 
             return services;
+        }
+
+        public static void AddMyLogger(this ILoggingBuilder logging, WebApplicationBuilder builder)
+        {
+            #region 
+            // Hrded code loglevel
+            //builder.Logging.AddFilter<ConsoleLoggerProvider>("Microsoft", LogLevel.Warning);
+
+            //// Hard Codded
+            //var hardCodedLogger = new LoggerConfiguration()
+            //    .MinimumLevel.Information()
+            //    .MinimumLevel.Override("Microsoft.AspNetCore", Serilog.Events.LogEventLevel.Warning)
+            //    .MinimumLevel.Override("System", Serilog.Events.LogEventLevel.Warning)
+            //    .WriteTo.Console()
+            //    .WriteTo.File(path: "./DemoApilog-.txt", rollingInterval: RollingInterval.Day)
+            //    .CreateLogger();
+            //builder.Logging.ClearProviders();
+            #endregion
+
+            // Added Serilog from file
+            var fromFile = new LoggerConfiguration()
+                            .ReadFrom.Configuration(builder.Configuration)
+                            .CreateLogger();
+
+
+            logging.AddSerilog(fromFile);
+            Serilog.Debugging.SelfLog.Enable(msg =>
+            {
+                Debug.Print(msg);
+                Debugger.Break();
+            }); 
+        }
+
+        static void AddSwaggerAuthentication(this Swashbuckle.AspNetCore.SwaggerGen.SwaggerGenOptions opt)
+        {
+            opt.AddSecurityDefinition(BasicAuthenticationDefaults.AuthenticationScheme, new OpenApiSecurityScheme()
+            {
+                Name = "Basic Authentication",
+                Description = "Basic authentication with user and password.",
+                In = ParameterLocation.Header,
+                Scheme = BasicAuthenticationDefaults.AuthenticationScheme,
+                Type = SecuritySchemeType.ApiKey
+            });
+
+            opt.AddSecurityRequirement(new OpenApiSecurityRequirement()
+                    {
+                        {
+                            new OpenApiSecurityScheme()
+                            {
+                                Reference = new OpenApiReference()
+                                {
+                                    Id = BasicAuthenticationDefaults.AuthenticationScheme,
+                                    Type = ReferenceType.SecurityScheme
+                                }
+                            },
+                            new string[] { }
+                        }
+                    });
         }
     }
 
@@ -56,7 +119,9 @@ namespace Demo.Api.Extensions
                     opt.SwaggerEndpoint("/Documentation/Demo.api/swagger.json", "Demo App");
                     opt.RoutePrefix = "Documentation";
                     opt.InjectStylesheet("/Swagger/swagger-ui.css");
+                    opt.EnablePersistAuthorization();
                 });
+
             }
             return app;
         }
